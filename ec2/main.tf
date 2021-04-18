@@ -20,17 +20,17 @@ data "template_file" "init" {
 }
 
 resource "aws_instance" "webserver" {
-
+    count = var.instance_count
     ami           = data.aws_ami.ubuntu.id
     instance_type = var.instance_type
-    availability_zone = "${var.region}a"
+    availability_zone = element(var.subnet_azs, count.index)
     key_name = var.key_name 
-    subnet_id = var.subnet_id 
+    subnet_id = element(var.subnets, count.index)
     vpc_security_group_ids = [ var.vpc_security_group_id ] 
     associate_public_ip_address = true
 
     tags = {
-        Name = "webserver"
+        Name = "webserver-${count.index + 1}"
     }
 
     user_data = var.create_user_data ? data.template_file.init.*.rendered[0] : ""
