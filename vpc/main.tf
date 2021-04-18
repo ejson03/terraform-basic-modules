@@ -21,19 +21,13 @@ resource "aws_route_table" "public_route" {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.gw.id
   }
-
-  route {
-    ipv6_cidr_block = "::/0"
-    gateway_id      = aws_internet_gateway.gw.id
-  }
-
   tags = {
     Name = "project-route-table"
   }
 }
 
 resource "aws_default_route_table" "private_route" {
-    count = var.create_private ? 1 : 0
+    count = length(var.private_cidr) > 0 ? 1 : 0
     default_route_table_id = aws_vpc.main.default_route_table_id
     route {
         nat_gateway_id = aws_nat_gateway.ngw[count.index]
@@ -45,66 +39,36 @@ resource "aws_default_route_table" "private_route" {
 }
 
 resource "aws_subnet" "public_subnet" {
+  count = length(var.public_cidr)
   vpc_id            = aws_vpc.main.id
-  cidr_block        = var.public_cidr
-  availability_zone = "${var.region}a"
+  cidr_block        = element(var.public_cidr, count.index)
+  availability_zone = element(var.subnet_azs, count.index)
   map_public_ip_on_launch = true
   tags = {
-    Name = "project-subnet"
+    Name = "project-subnet-${count.index + 1}"
   }
 }
 
 resource "aws_subnet" "private_subnet" {
-  count = var.create_private ? 1 : 0
+  count = length(var.private_cidr)
   vpc_id            = aws_vpc.main.id
-  cidr_block        = var.private_cidr
-  availability_zone = "${var.region}a"
+  cidr_block        = element(var.private_cidr, count.index)
+  availability_zone = element(var.subnet_azs, count.index)
   tags = {
-    Name = "private-project-subnet"
+    Name = "private-project-subnet-${count.index + 1}"
   }
 }
 
 resource "aws_route_table_association" "public_association" {
-  subnet_id      = aws_subnet.public_subnet.id
+  count = length(var.public_cidr)
+  subnet_id      = element(aws_subnet.public_subnet.*.id, count.index)
   route_table_id = aws_route_table.public_route.id
 }
 
 resource "aws_route_table_association" "private_association" {
-  count = var.create_private ? 1 : 0
-  subnet_id      = aws_subnet.private_subnet[count.index]
+  count = length(var.private_cidr)
+  subnet_id      = element(aws_subnet.private_subnet.*.id, count.index)
   route_table_id = aws_default_route_table.private_route[count.index]
-}
-
-resource "aws_security_group" "sg" {
-  name        = "project_allowance_traffic"
-  description = "Allow Web inbound traffic"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "project-allowance"
-  }
 }
 
 resource "aws_eip" "eip" {
@@ -112,8 +76,8 @@ resource "aws_eip" "eip" {
 }
 
 resource "aws_nat_gateway" "ngw" {
-    count = var.create_private ? 1 : 0
+    count = length(var.private_cidr) > 0 ? 1 : 0
     allocation_id = aws_eip.eip.id
-    subnet_id = aws_subnet.public_subnet
+    subnet_id = aws_subnet.public_subnet.0.id
 }
 
