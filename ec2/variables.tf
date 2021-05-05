@@ -2,6 +2,10 @@ variable "instance_type" {
   default = "t2.micro"
 }
 
+variable "ami" {
+  default = ""
+}
+
 variable "region" {
   default = "ap-south-1"
 }

@@ -72,6 +72,7 @@ resource "aws_route_table_association" "private_association" {
 }
 
 resource "aws_eip" "eip" {
+    count = length(var.private_cidr) > 0 ? 1 : 0
     vpc = true
 }
 

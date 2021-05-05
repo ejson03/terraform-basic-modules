@@ -21,7 +21,7 @@ data "template_file" "init" {
 
 resource "aws_instance" "webserver" {
     count = var.instance_count
-    ami           = data.aws_ami.ubuntu.id
+    ami           = var.ami != "" ? var.ami : data.aws_ami.ubuntu.id
     instance_type = var.instance_type
     availability_zone = element(var.subnet_azs, count.index)
     key_name = var.key_name 
