@@ -26,7 +26,7 @@ resource "aws_instance" "webserver" {
     availability_zone = element(var.subnet_azs, count.index)
     key_name = var.key_name 
     subnet_id = element(var.subnets, count.index)
-    vpc_security_group_ids = [ var.vpc_security_group_id ] 
+    vpc_security_group_ids = var.vpc_security_group_id  
     associate_public_ip_address = true
 
     tags = {
