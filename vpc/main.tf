@@ -78,7 +78,7 @@ resource "aws_eip" "eip" {
 
 resource "aws_nat_gateway" "ngw" {
     count = length(var.private_cidr) > 0 ? 1 : 0
-    allocation_id = aws_eip.eip.id
+    allocation_id = aws_eip.eip[count.index]
     subnet_id = aws_subnet.public_subnet.0.id
 }
 
